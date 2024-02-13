@@ -1,5 +1,5 @@
 /* --------------------------------------
-  Methane Sensing Clinic Integrated Code version 1
+  methane_sense
 
   Read data from MH-741A Methane Sensor via I2C, and write to a CSV file on an SD card
 
@@ -7,8 +7,8 @@
 
   The circuit:
    SD card attached to SPI bus as follows:
- ** MOSI - pin 11
- ** MISO - pin 12
+ ** DI - pin 11
+ ** DO - pin 12
  ** CLK - pin 13
  ** CS - pin 4
    MH-741A Methane Sensor wires connected as follows:
@@ -28,24 +28,14 @@ File dataFile; // data file to write methane data to
 String fileName = "mdata.csv"; // NAME OF FILE (before .csv extension) MUST BE 8 CHARACTERS OR FEWER
 int timeDelay = 5000; // time between data entries in milliseconds
 
-int reading = 0; // to be received from sensor
-int highDensityReading = 0;
-int lowDensityReading = 0;
-int lowDensityRange = 0;
-int highDensityRange = 0;
-
-int address = 0x55; // Address and commands are from datasheet
-int gasConcCommand = 0x96; // Gas concentration
-int calibrZeroCommand = 0xA0; // Calibrate zero point
-int calibrSpanCommand = 0xAA; // Calibrate span point
-
-String concentrationList = "";
+const int methaneAddress = 0x55; // Address and commands are from datasheet
+const int gasConcCommand = 0x96; // Gas concentration
+const int calibrZeroCommand = 0xA0; // Calibrate zero point of methane sensor
+const int calibrSpanCommand = 0xAA; // Calibrate span point of methane sensor
 
 unsigned long startTime;
 
-int iter = 0;
-
-
+// Setup
 void setup() {
   Wire.begin();
 
@@ -61,18 +51,28 @@ void setup() {
   startTime = millis();
 }
 
+// Run continuously
 void loop() {
-  senseMethane();
+  // Read values
+  int currentTime = (millis() - startTime) / 1000
+  int methaneReading = readMethane();
 
-  logToSerial();
-  logData(); // Comment this out to only use methane sensor, along with line 54
+  // Log values
+  int data[2] = {currentTime, methaneReading};
+  logData(data);
+  logToSerial(data);
 
+  // Wait
   delay(timeDelay);
 }
 
-// Read the methane value from the sensor, returns computed methane value, also saves relevant raw data in global variables
-int senseMethane() {
-  Wire.beginTransmission(byte(address));
+// Read the methane value from the sensor, returns computed methane value
+int readMethane() {
+  int reading;
+  int highReading;
+  int lowReading;
+
+  Wire.beginTransmission(byte(methaneAddress));
   Wire.write(byte(gasConcCommand));
   for (int i = 0; i < 8; i++) {
     Wire.write(byte(0x00));
@@ -82,54 +82,44 @@ int senseMethane() {
 
   delay(70); // Not sure if this is needed
 
-  Wire.requestFrom(address, 10); // Request ten bytes
+  Wire.requestFrom(methaneAddress, 10); // Request ten bytes
 
   int i = 0;
   while (Wire.available()) {
     reading = Wire.read(); 
     if (i == 5) {
-      highDensityReading = reading;
+      highReading = reading;
     } else if (i == 6) {
-      lowDensityReading = reading;
-    } else if (i == 7) {
-      highDensityRange = reading;
-    } else if (i == 8) {
-      lowDensityRange = reading;
-    }
-    //reading = reading << 8; // not sure what these lines do; shift binary digits 8 spaces to the left (surely resulting in 00000000?),
-    //reading |= Wire.read(); // combining (bitwise OR) what remains to another Wire.read()? 
-    //Serial.println(reading);
+      lowReading = reading;
     i++;
   }
-  return highDensityReading * 256 + lowDensityReading;
+  Wire.endTransmission();
+  return highReading * 256 + lowReading;
 }
 
 // Calibrate the zero point of the sensor (I'm assuming you just run this command in a zero methane environment)
+// Planning to have this be triggered by serial command
 void calibrateZero() {
-  Wire.beginTransmission(byte(address));
+  Wire.beginTransmission(byte(methaneAddress));
   Wire.write(byte(calibrZeroCommand));
   for (int i = 0; i < 8; i++) {
     Wire.write(byte(0x00));
   }
   Wire.write(byte(256 - calibrZeroCommand));
+  Wire.endTransmission();
 }
 
-// Calibrate the range of output in ppm(?)
+// Calibrate current value of methane
+// Planning to have this be triggered by serial command
 void calibrateSpan(unsigned int range) {
   // Split range into two bytes
   int highByte = range / 256;
   int lowByte = range % 256;
 
-  // TESTING
-  Serial.print("High Span: ");
-  Serial.println(highByte);
-  Serial.print("Low Span: ");
-  Serial.println(lowByte);
-
   int checksum = calibrSpanCommand + highByte + lowByte;
 
   // Send "calibrate span point" command
-  Wire.beginTransmission(byte(address));
+  Wire.beginTransmission(byte(methaneAddress));
   Wire.write(byte(calibrSpanCommand));
 
   Wire.write(byte(highByte));
@@ -143,6 +133,7 @@ void calibrateSpan(unsigned int range) {
 
 }
 
+// Initialize the SD Card and open CSV file
 void initSD() {
   Serial.println("Initializing SD card...");
 
@@ -163,13 +154,14 @@ void initSD() {
 }
 
 // Write a data entry to CSV file
-void logData() {
+// data array should take format: {time(s), methane reading (%Vol * 100)}
+void logData(int data[2]) {
   // Not sure if this function should open and close the file each time, but it does for now.
   dataFile = SD.open(fileName, FILE_WRITE);
 
-  dataFile.print((millis() - startTime) / 1000); // Log the time in seconds
+  dataFile.print(data[0]); // Log the time in seconds
   dataFile.print(",");
-  dataFile.println(256 * highDensityReading + lowDensityReading); // Log value of methane given by sensor
+  dataFile.println(data[1]); // Log value of methane given by sensor
 
   dataFile.close();
   
@@ -178,23 +170,15 @@ void logData() {
 }
 
 // Write current methane data to serial monitor
-void logToSerial() {
+// data array should take format: {time(s), methane reading (%Vol * 100)}
+void logToSerial(int data[2]) {
   char time[15];
-  sprintf(time, "Time: %.02d:%.02d", int((millis() - startTime) / 60000), int((millis() - startTime) / 1000 % 60));
+  sprintf(time, "Time: %.02d:%.02d", int(data[0] / 60), int(data[0] % 60));
   
   Serial.println(time);
 
-  Serial.print("Methane Concentration: ");
-  Serial.println(256 * highDensityReading + lowDensityReading);
-  Serial.print("Range Value: ");
-  Serial.println(256 * highDensityRange + lowDensityRange);
-
-  //concentrationList = concentrationList.equals("") ? String(256 * highDensityReading + lowDensityReading) : String(concentrationList + ", " + (256 * highDensityReading + lowDensityReading));
-  //Serial.print("[");
-  //Serial.print(concentrationList);
-  //Serial.println("]");
-  //Serial.print("Gas Concentration Range: ");
-  //Serial.println(256 * highDensityRange + lowDensityRange);
+  Serial.print("Methane Concentration (%Vol * 100): ");
+  Serial.println(data[1]);
 
   Serial.println();
 }
