@@ -1,5 +1,5 @@
 /* --------------------------------------
-  methane_sense
+  Methane Sensing Clinic Integrated Code version 1
 
   Read data from MH-741A Methane Sensor via I2C, and write to a CSV file on an SD card
 
@@ -20,18 +20,28 @@
    --------------------------------------
 */
 
+#include <Arduino.h>
+#include "Adafruit_SHT31.h"
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
 
+// SD Card Variables
 File dataFile; // data file to write methane data to
 String fileName = "mdata.csv"; // NAME OF FILE (before .csv extension) MUST BE 8 CHARACTERS OR FEWER
 int timeDelay = 5000; // time between data entries in milliseconds
 
+// Methane Sensor Variables
 const int methaneAddress = 0x55; // Address and commands are from datasheet
 const int gasConcCommand = 0x96; // Gas concentration
 const int calibrZeroCommand = 0xA0; // Calibrate zero point of methane sensor
 const int calibrSpanCommand = 0xAA; // Calibrate span point of methane sensor
+
+// Temperature Sensor Variables
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
+
+// Salinity Sensor Variables
+
 
 unsigned long startTime;
 
@@ -40,13 +50,18 @@ void setup() {
   Wire.begin();
 
   Serial.begin(9600);
-  digitalWrite(SDA, LOW); // DISABLE PULL UP RESISTORS
+
+  // DISABLE PULL UP RESISTORS
+  digitalWrite(SDA, LOW);
   digitalWrite(SCL, LOW);
 
-  initSD(); // Comment this out to only use methane sensor, along with line 63
+  // Initialize components
+  initSD();
+  initTempSensor();
+
 
   //calibrateZero();
-  //calibrateSpan(1500); // KEEP COMMENTED OUT IF NOT CALIBRATING
+  //calibrateSpan(1500); // KEEP COMMENTED OUT IF NOT CALIBRATING (should make it to only calibrate through serial input)
 
   startTime = millis();
 }
@@ -56,6 +71,8 @@ void loop() {
   // Read values
   int currentTime = (millis() - startTime) / 1000
   int methaneReading = readMethane();
+  int temperatureReading = readTemperature();
+  int salinityReading = readSalinity();
 
   // Log values
   int data[2] = {currentTime, methaneReading};
@@ -66,7 +83,29 @@ void loop() {
   delay(timeDelay);
 }
 
-// Read the methane value from the sensor, returns computed methane value
+
+
+/* ----- READING FUNCTIONS ----- */
+
+
+// Read temperature value from SHT31 sensor, return float in degrees C
+int readTemperature() {
+  float t = sht31.readTemperature();
+
+  if (! isnan(t)) {  // check if 'is not a number'
+    return t;
+  } else { 
+    Serial.println("Failed to read temperature");
+    return 9999; // return unreasonable number if failed to read
+  }
+}
+
+// Read salinity value from EC sensor, return integer in [unit?]
+int readSalinity() {
+  return 0;
+}
+
+// Read the methane value from the sensor, returns computed methane value (if calibrated, in %Vol * 100)
 int readMethane() {
   int reading;
   int highReading;
@@ -96,6 +135,11 @@ int readMethane() {
   Wire.endTransmission();
   return highReading * 256 + lowReading;
 }
+
+
+
+/* ----- CALIBRATION FUNCTIONS ----- */
+
 
 // Calibrate the zero point of the sensor (I'm assuming you just run this command in a zero methane environment)
 // Planning to have this be triggered by serial command
@@ -133,6 +177,11 @@ void calibrateSpan(unsigned int range) {
 
 }
 
+
+
+/* ----- INITIALIZATION FUNCTIONS ----- */
+
+
 // Initialize the SD Card and open CSV file
 void initSD() {
   Serial.println("Initializing SD card...");
@@ -152,6 +201,22 @@ void initSD() {
   Serial.println("File opened succesfully.");
   dataFile.close();
 }
+
+// Initialize the temperature sensor, stop program if not working (maybe final code shouldn't entirely stop the code)
+void initTempSensor() {
+  Serial.println("Initializing SHT31 Temperature Sensor:");
+  if (! sht31.begin(0x44)) 
+  {   // Set to 0x45 for alternate i2c addr
+    Serial.println("Couldn't find SHT31");
+    while (1) delay(1);
+  }
+  Serial.println("SHT31 connected successfully.");
+}
+
+
+
+/* ----- WRITING FUNCTIONS ----- */
+
 
 // Write a data entry to CSV file
 // data array should take format: {time(s), methane reading (%Vol * 100)}
