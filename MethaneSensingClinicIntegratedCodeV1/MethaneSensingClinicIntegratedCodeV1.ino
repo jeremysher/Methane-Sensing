@@ -1,21 +1,12 @@
 /* --------------------------------------
   Methane Sensing Clinic Integrated Code version 1
 
-  Read data from MH-741A Methane Sensor via I2C, and write to a CSV file on an SD card
-
-  If currently calibrated, concentration value ranges from 0 to 10000 with 10000 being 100% by volume
-
-  The circuit:
-   SD card attached to SPI bus as follows:
- ** DI - pin 11
- ** DO - pin 12
- ** CLK - pin 13
- ** CS - pin 4
-   MH-741A Methane Sensor wires connected as follows:
- ** RED - 5V
- ** BLACK - GND
- ** YELLOW - SCL
- ** BROWN - SDA
+  Read data from:
+    - MH-741A Methane Sensor
+    - SHT31 Temperature Sensor
+    - Electric Conductivity Sensor (for salinity reading)
+    - Real Time Clock Module
+  Save data to SD Card
 
    --------------------------------------
 */
