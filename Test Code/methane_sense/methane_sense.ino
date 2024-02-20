@@ -54,7 +54,7 @@ void setup() {
 // Run continuously
 void loop() {
   // Read values
-  int currentTime = (millis() - startTime) / 1000
+  int currentTime = (millis() - startTime) / 1000;
   int methaneReading = readMethane();
 
   // Log values
@@ -91,6 +91,7 @@ int readMethane() {
       highReading = reading;
     } else if (i == 6) {
       lowReading = reading;
+    }
     i++;
   }
   Wire.endTransmission();

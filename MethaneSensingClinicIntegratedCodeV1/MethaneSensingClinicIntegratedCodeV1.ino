@@ -161,6 +161,7 @@ int readMethane() {
       highReading = reading;
     } else if (i == 6) {
       lowReading = reading;
+    }
     i++;
   }
   Wire.endTransmission();
@@ -335,7 +336,7 @@ void logToSerial(int data[9]) {
   Serial.print("/");
   Serial.print(data[2]);
 
-  Serial.print(" - ")
+  Serial.print(" - ");
 
   // Time
   Serial.print(data[3]);
@@ -363,7 +364,7 @@ void logToSerial(int data[9]) {
 
 
 // Only a separate function to keep calculation info separated
-float soilSalinityConversion(int soil_ec){
+float soilSalinityConversion(int soil_ec) {
 //  TDS (mg/L or ppm) = EC (dS/m) x 800 (EC > 5 dS/m) 
 //  1 dS/m, = 1000 µS/cm
 //  TDS (mg/L or ppm) = EC (uS/cm)/1000 x 800 (EC > 5 dS/m) 
