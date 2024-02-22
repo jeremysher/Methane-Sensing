@@ -101,7 +101,53 @@ void loop() {
 
 
 
-/* ----- READING FUNCTIONS ----- */
+/******************************************************************************************/
+/* ------------------------------ INITIALIZATION FUNCTIONS ------------------------------ */
+/******************************************************************************************/
+
+
+// Initialize the SD Card and open CSV file
+void initSD() {
+  Serial.println("Initializing SD card...");
+
+  if (!SD.begin(SD_CS)) {
+    Serial.println("SD initialization failed!");
+    while (1); // Stop code from proceeding
+  }
+  Serial.println("SD initialization complete.");
+
+  dataFile = SD.open(fileName, FILE_WRITE);
+
+  if (!dataFile) {
+    Serial.println("Failed to open file!");
+    while (1);
+  }
+  Serial.println("File opened succesfully.");
+  dataFile.close();
+}
+
+// Initialize the temperature sensor, stop program if not working (maybe final code shouldn't entirely stop the code)
+void initTempSensor() {
+  Serial.println("Initializing SHT31 Temperature Sensor:");
+  if (! sht31.begin(0x44)) 
+  {   // Set to 0x45 for alternate i2c addr
+    Serial.println("Couldn't find SHT31");
+    while (1) delay(1);
+  }
+  Serial.println("SHT31 connected successfully.");
+}
+
+// Intialize the real time clock module peripheral
+void initClockModule() {
+  rtc.begin();
+  Serial.println("RTC Intialized");
+}
+
+
+
+/***********************************************************************************/
+/* ------------------------------ READING FUNCTIONS ------------------------------ */
+/***********************************************************************************/
 
 
 // Read temperature value from SHT31 sensor, return float in degrees C
@@ -188,7 +234,67 @@ void readTime() {
 
 
 
-/* ----- CALIBRATION FUNCTIONS ----- */
+/***********************************************************************************/
+/* ------------------------------ WRITING FUNCTIONS ------------------------------ */
+/***********************************************************************************/
+
+
+// Write a data entry to CSV file
+// data array should take format: {year, month, day, hour, minute, second, methane reading, temp reading, salinity reading}
+void logData(String data[9]) {
+  // Not sure if this function should open and close the file each time, but it does for now.
+  dataFile = SD.open(fileName, FILE_WRITE);
+
+  for (int i = 0; i < 9; i++) {
+    dataFile.print(data[i]);
+    if (i < 8) dataFile.print(",");
+  }
+  
+  Serial.println("New data logged!");
+  Serial.println();
+}
+
+// Write current sensor data to serial monitor
+// data array should take format: {year, month, day, hour, minute, second, methane reading, temp reading, salinity reading}
+void logToSerial(String data[9]) {
+
+  // Date
+  Serial.print(data[0]);
+  Serial.print("/");
+  Serial.print(data[1]);
+  Serial.print("/");
+  Serial.print(data[2]);
+
+  Serial.print(" - ");
+
+  // Time
+  if (data[3].length() < 2) Serial.print("0"); // zero padding
+  Serial.print(data[3]);
+  Serial.print(":");
+  if (data[4].length() < 2) Serial.print("0");
+  Serial.print(data[4]);
+  Serial.print(":");
+  if (data[5].length() < 2) Serial.print("0");
+  Serial.println(data[5]);
+
+  // Methane
+  Serial.print("Methane Concentration (%Vol * 100): ");
+  Serial.println(data[6]);
+
+  // Temperature
+  Serial.print("Temperature (*C): ");
+  Serial.println(data[7]);
+
+  // Salinity
+  Serial.print("Salinity (mg/L): ");
+  Serial.println(data[8]);
+}
+
+
+
+/***************************************************************************************/
+/* ------------------------------ CALIBRATION FUNCTIONS ------------------------------ */
+/***************************************************************************************/
 
 
 // Calibrate the zero point of the sensor (I'm assuming you just run this command in a zero methane environment)
@@ -266,105 +372,9 @@ void updateRTC()
 
 
 
-/* ----- INITIALIZATION FUNCTIONS ----- */
-
-
-// Initialize the SD Card and open CSV file
-void initSD() {
-  Serial.println("Initializing SD card...");
-
-  if (!SD.begin(SD_CS)) {
-    Serial.println("SD initialization failed!");
-    while (1); // Stop code from proceeding
-  }
-  Serial.println("SD initialization complete.");
-
-  dataFile = SD.open(fileName, FILE_WRITE);
-
-  if (!dataFile) {
-    Serial.println("Failed to open file!");
-    while (1);
-  }
-  Serial.println("File opened succesfully.");
-  dataFile.close();
-}
-
-// Initialize the temperature sensor, stop program if not working (maybe final code shouldn't entirely stop the code)
-void initTempSensor() {
-  Serial.println("Initializing SHT31 Temperature Sensor:");
-  if (! sht31.begin(0x44)) 
-  {   // Set to 0x45 for alternate i2c addr
-    Serial.println("Couldn't find SHT31");
-    while (1) delay(1);
-  }
-  Serial.println("SHT31 connected successfully.");
-}
-
-// Intialize the real time clock module peripheral
-void initClockModule() {
-  rtc.begin();
-  Serial.println("RTC Intialized");
-}
-
-
-
-/* ----- WRITING FUNCTIONS ----- */
-
-
-// Write a data entry to CSV file
-// data array should take format: {year, month, day, hour, minute, second, methane reading, temp reading, salinity reading}
-void logData(String data[9]) {
-  // Not sure if this function should open and close the file each time, but it does for now.
-  dataFile = SD.open(fileName, FILE_WRITE);
-
-  for (int i = 0; i < 9; i++) {
-    dataFile.print(data[i]);
-    if (i < 8) dataFile.print(",");
-  }
-  
-  Serial.println("New data logged!");
-  Serial.println();
-}
-
-// Write current sensor data to serial monitor
-// data array should take format: {year, month, day, hour, minute, second, methane reading, temp reading, salinity reading}
-void logToSerial(String data[9]) {
-
-  // Date
-  Serial.print(data[0]);
-  Serial.print("/");
-  Serial.print(data[1]);
-  Serial.print("/");
-  Serial.print(data[2]);
-
-  Serial.print(" - ");
-
-  // Time
-  if (data[3].length() < 2) Serial.print("0"); // zero padding
-  Serial.print(data[3]);
-  Serial.print(":");
-  if (data[4].length() < 2) Serial.print("0");
-  Serial.print(data[4]);
-  Serial.print(":");
-  if (data[5].length() < 2) Serial.print("0");
-  Serial.println(data[5]);
-
-  // Methane
-  Serial.print("Methane Concentration (%Vol * 100): ");
-  Serial.println(data[6]);
-
-  // Temperature
-  Serial.print("Temperature (*C): ");
-  Serial.println(data[7]);
-
-  // Salinity
-  Serial.print("Salinity (mg/L): ");
-  Serial.println(data[8]);
-}
-
-
-
-/* ----- SUPPLEMENTARY FUNCTIONS ----- */
+/*****************************************************************************************/
+/* ------------------------------ SUPPLEMENTARY FUNCTIONS ------------------------------ */
+/*****************************************************************************************/
 
 
 // Only a separate function to keep calculation info separated
