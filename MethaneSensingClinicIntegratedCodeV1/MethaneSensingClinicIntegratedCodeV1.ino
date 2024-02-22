@@ -23,7 +23,7 @@
 const int SD_CS = 4; // chip select
 File dataFile; // data file to write methane data to
 String fileName = "mdata.csv"; // NAME OF FILE (before .csv extension) MUST BE 8 CHARACTERS OR FEWER
-int timeDelay = 5000; // time between data entries in milliseconds
+int timeDelay = 2000; // time between data entries in milliseconds
 
 /* --- Methane Sensor Variables --- */
 const int methaneAddress = 0x55; // Address and commands are from datasheet
@@ -86,11 +86,12 @@ void loop() {
   // Read values
   readTime();
   int methaneReading = readMethane();
-  int temperatureReading = readTemperature();
-  int salinityReading = readSalinity();
+  float temperatureReading = readTemperature();
+  float salinityReading = readSalinity();
 
   // Log values: 6 time values, 3 measurement values
-  int data[9] = {time[0], time[1], time[2], time[3], time[4], time[5], methaneReading, temperatureReading, salinityReading};
+  //int data[9] = {time[0], time[1], time[2], time[3], time[4], time[5], methaneReading, temperatureReading, salinityReading};
+  String data[9] = {String(time[0]), String(time[1]), String(time[2]), String(time[3]), String(time[4]), String(time[5]), String(methaneReading), String(temperatureReading, 2), String(salinityReading, 3)};
   logData(data);
   logToSerial(data);
 
@@ -128,9 +129,9 @@ float readSalinity() {
     for (byte i = 0; i < 7; i++)
     {
       ecValues[i] = mod.read();
-      Serial.print(ecValues[i], HEX);
+      //Serial.print(ecValues[i], HEX);
     }
-    Serial.println();
+    //Serial.println();
   }
 
   return soilSalinityConversion(int(ecValues[3]<<8|ecValues[4]));
@@ -312,7 +313,7 @@ void initClockModule() {
 
 // Write a data entry to CSV file
 // data array should take format: {year, month, day, hour, minute, second, methane reading, temp reading, salinity reading}
-void logData(int data[9]) {
+void logData(String data[9]) {
   // Not sure if this function should open and close the file each time, but it does for now.
   dataFile = SD.open(fileName, FILE_WRITE);
 
@@ -327,7 +328,7 @@ void logData(int data[9]) {
 
 // Write current sensor data to serial monitor
 // data array should take format: {year, month, day, hour, minute, second, methane reading, temp reading, salinity reading}
-void logToSerial(int data[9]) {
+void logToSerial(String data[9]) {
 
   // Date
   Serial.print(data[0]);
@@ -339,10 +340,13 @@ void logToSerial(int data[9]) {
   Serial.print(" - ");
 
   // Time
+  if (data[3].length() < 2) Serial.print("0"); // zero padding
   Serial.print(data[3]);
   Serial.print(":");
+  if (data[4].length() < 2) Serial.print("0");
   Serial.print(data[4]);
   Serial.print(":");
+  if (data[5].length() < 2) Serial.print("0");
   Serial.println(data[5]);
 
   // Methane
