@@ -20,7 +20,7 @@
 #include <Wire.h>
 
 /* --- SD Card Variables --- */
-const int SD_CS = 4; // chip select
+const int SD_CS = 53; // chip select (4 for UNO, 53 for MEGA)
 File dataFile; // data file to write methane data to
 String fileName = "mdata.csv"; // NAME OF FILE (before .csv extension) MUST BE 8 CHARACTERS OR FEWER
 int timeDelay = 2000; // time between data entries in milliseconds
@@ -249,6 +249,9 @@ void logData(String data[9]) {
     dataFile.print(data[i]);
     if (i < 8) dataFile.print(",");
   }
+  dataFile.println();
+
+  dataFile.close();
   
   Serial.println("New data logged!");
   Serial.println();
@@ -387,4 +390,25 @@ float soilSalinityConversion(int soil_ec) {
 
   float soil_salinity = soil_ec * 0.8;  
   return soil_salinity;
+}
+
+void display_freeram() {
+
+  Serial.print(F("- SRAM left: "));
+
+  Serial.println(freeRam());
+
+}
+
+
+int freeRam() {
+
+  extern int __heap_start,*__brkval;
+
+  int v;
+
+  return (int)&v - (__brkval == 0  
+
+    ? (int)&__heap_start : (int) __brkval);  
+
 }
