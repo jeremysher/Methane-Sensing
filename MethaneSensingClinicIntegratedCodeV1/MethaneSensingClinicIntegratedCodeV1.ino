@@ -20,7 +20,7 @@
 #include <Wire.h>
 
 /* --- SD Card Variables --- */
-const int SD_CS = 53; // chip select (4 for UNO, 53 for MEGA)
+const int SD_CS = 4; // chip select (4 for UNO, 53 for MEGA)
 File dataFile; // data file to write methane data to
 String fileName = "mdata.csv"; // NAME OF FILE (before .csv extension) MUST BE 8 CHARACTERS OR FEWER
 int timeDelay = 2000; // time between data entries in milliseconds
@@ -46,7 +46,7 @@ SoftwareSerial mod(EC_RO, EC_DI);
 
 /* -- Real Time Clock Module Variables --- */
 RTC_DS3231 rtc; // create rtc for the DS3231 RTC module, address is fixed at 0x68
-int time[6]; // Stores values for time in format {year, month, day, hour, minute, second}
+unsigned int timeArray[6]; // Stores values for Time in format {year, month, day, hour, minute, second}
 
 // Setup
 void setup() {
@@ -85,13 +85,16 @@ void loop() {
 
   // Read values
   readTime();
+  delay(1);
   int methaneReading = readMethane();
+  delay(1);
   float temperatureReading = readTemperature();
+  delay(1);
   float salinityReading = readSalinity();
 
   // Log values: 6 time values, 3 measurement values
-  //int data[9] = {time[0], time[1], time[2], time[3], time[4], time[5], methaneReading, temperatureReading, salinityReading};
-  String data[9] = {String(time[0]), String(time[1]), String(time[2]), String(time[3]), String(time[4]), String(time[5]), String(methaneReading), String(temperatureReading, 2), String(salinityReading, 3)};
+  //int data[9] = {timeArray[0], timeArray[1], timeArray[2], timeArray[3], timeArray[4], timeArray[5], methaneReading, temperatureReading, salinityReading};
+  String data[9] = {String(timeArray[0]), String(timeArray[1]), String(timeArray[2]), String(timeArray[3]), String(timeArray[4]), String(timeArray[5]), String(methaneReading), String(temperatureReading, 2), String(salinityReading, 3)};
   logData(data);
   logToSerial(data);
 
@@ -197,13 +200,14 @@ int readMethane() {
   Wire.write(byte(256 - gasConcCommand));
   Wire.endTransmission();
 
-  delay(70); // Not sure if this is needed
+  //delay(70); // Not sure if this is needed
 
   Wire.requestFrom(methaneAddress, 10); // Request ten bytes
 
   int i = 0;
   while (Wire.available()) {
     reading = Wire.read(); 
+    //Serial.print(reading);
     if (i == 5) {
       highReading = reading;
     } else if (i == 6) {
@@ -211,11 +215,12 @@ int readMethane() {
     }
     i++;
   }
+  //Serial.println();
   Wire.endTransmission();
   return highReading * 256 + lowReading;
 }
 
-// Read time from RTC and update integer array variable "time" in {year, month, day, hour, month, second} format
+// Read time from RTC and update integer array variable "timeArray" in {year, month, day, hour, month, second} format
 // Would've just made this function return the value like the rest of these "read" functions but C++ can't return arrays :(
 // This whole function might not be necessary, might want to just call rtc.now() elsewhere
 void readTime() {
@@ -223,12 +228,12 @@ void readTime() {
   DateTime rtcTime = rtc.now();
 
   // Update global time array
-  time[0] = rtcTime.year();
-  time[1] = rtcTime.month();
-  time[2] = rtcTime.day();
-  time[3] = rtcTime.hour();
-  time[4] = rtcTime.minute();
-  time[5] = rtcTime.second();
+  timeArray[0] = rtcTime.year();
+  timeArray[1] = rtcTime.month();
+  timeArray[2] = rtcTime.day();
+  timeArray[3] = rtcTime.hour();
+  timeArray[4] = rtcTime.minute();
+  timeArray[5] = rtcTime.second();
   
 }
 
@@ -390,25 +395,4 @@ float soilSalinityConversion(int soil_ec) {
 
   float soil_salinity = soil_ec * 0.8;  
   return soil_salinity;
-}
-
-void display_freeram() {
-
-  Serial.print(F("- SRAM left: "));
-
-  Serial.println(freeRam());
-
-}
-
-
-int freeRam() {
-
-  extern int __heap_start,*__brkval;
-
-  int v;
-
-  return (int)&v - (__brkval == 0  
-
-    ? (int)&__heap_start : (int) __brkval);  
-
 }
