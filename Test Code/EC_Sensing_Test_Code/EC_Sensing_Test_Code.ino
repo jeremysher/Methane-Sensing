@@ -5,18 +5,17 @@
 */
 
 #include <SoftwareSerial.h>
-#include <Wire.h>
  
 #define RE 6 //was 8
 #define DE 2 //was 7
-#define RO 5 //was 7
+#define RO 12 //was 5 //was 7
 #define DI 3 //was 3
- 
+
 const byte ec[] = {0x01, 0x03, 0x00, 0x15, 0x00, 0x01, 0x95, 0xCE};
 const byte salinity[] = {0x01, 0x03, 0x00, 0x14, 0x00, 0x01, 0xC4, 0x0E};
 byte values[8];
  
-SoftwareSerial mod(RO, DI); // was 2,3
+SoftwareSerial mod(RO, DI); // was 2,3 , was RO, DI
  
  
 void setup()

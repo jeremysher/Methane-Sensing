@@ -20,7 +20,7 @@
 #include <Wire.h>
 
 /* --- SD Card Variables --- */
-const int SD_CS = 4; // chip select (4 for UNO, 53 for MEGA)
+const int SD_CS = 53; // chip select (4 for UNO, 53 for MEGA)
 File dataFile; // data file to write methane data to
 String fileName = "mdata.csv"; // NAME OF FILE (before .csv extension) MUST BE 8 CHARACTERS OR FEWER
 int timeDelay = 2000; // time between data entries in milliseconds
@@ -37,7 +37,7 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 /* --- Salinity Sensor Variables --- */
 const int EC_RE = 6;
 const int EC_DE = 2;
-const int EC_RO = 5;
+const int EC_RO = 12; //was 5;
 const int EC_DI = 3;
 const byte ec[] = {0x01, 0x03, 0x00, 0x15, 0x00, 0x01, 0x95, 0xCE};
 const byte salinity[] = {0x01, 0x03, 0x00, 0x14, 0x00, 0x01, 0xC4, 0x0E};
@@ -200,7 +200,7 @@ int readMethane() {
   Wire.write(byte(256 - gasConcCommand));
   Wire.endTransmission();
 
-  //delay(70); // Not sure if this is needed
+  delay(70); // Not sure if this is needed
 
   Wire.requestFrom(methaneAddress, 10); // Request ten bytes
 

@@ -27,7 +27,7 @@ void loop() {
   float t = sht31.readTemperature();
 
   if (! isnan(t)) {  // check if 'is not a number'
-    Serial.print("Temp *C = "); Serial.print(t); Serial.print("\t\t");
+    Serial.print("Temp *C = "); Serial.print(t); Serial.println("\t\t");
   } else { 
     Serial.println("Failed to read temperature");
   } 

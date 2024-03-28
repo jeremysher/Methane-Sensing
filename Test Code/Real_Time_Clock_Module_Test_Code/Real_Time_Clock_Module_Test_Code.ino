@@ -10,6 +10,7 @@ RTC_DS3231 rtc;                     // create rtc for the DS3231 RTC module, add
 
 void setup() { 
   //Intialize I2C peripherals
+  Wire.setClock(400000);
   Wire.begin();
 
    //Intialize Serial Monitor
@@ -18,36 +19,39 @@ void setup() {
   
   //Intialize real time clock module peripheral
   rtc.begin();
+  //delay(10000);
   Serial.println("RTC Intialized");
 
   //Intialize Temperature Sensor
-  sht31.begin(0x44);
-  Serial.println("SHT31 Intialized");
+  //sht31.begin(0x44);
+  //Serial.println("SHT31 Intialized");
 }
 
-void loop() { 
+void loop() {
+  rtc.begin();
     //Print Time
   displayTime();
-
+  //Delay One Second 
   //Print Temperature
-  float t = sht31.readTemperature();
+  /*float t = sht31.readTemperature();
 
   if (! isnan(t)) {  // check if 'is not a number'
     Serial.print("Temp *C = "); Serial.print(t); Serial.print("\t\t");
   } else { 
     Serial.println("Failed to read temperature");
-  } 
+  } */
 
 
   //Check if edit update is necessary for time
+  /*
   if (Serial.available()) {
   char input = Serial.read();
   if (input == 'u') updateRTC();  // update RTC time
   }
   Serial.println(" ");
+*/
+  delay(3000);
 
-  //Delay One Second 
-  delay(1000);
 }
 /*
    function to display time to Serial text
