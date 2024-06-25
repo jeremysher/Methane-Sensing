@@ -155,7 +155,7 @@ void initTempSensor() {
   if (! sht31.begin(0x44)) 
   {   // Set to 0x45 for alternate i2c addr
     //Serial.println("Couldn't find SHT31");
-    while (1) delay(1);
+    while (0) delay(1);
   }
   //Serial.println("SHT31 connected successfully.");
 }
