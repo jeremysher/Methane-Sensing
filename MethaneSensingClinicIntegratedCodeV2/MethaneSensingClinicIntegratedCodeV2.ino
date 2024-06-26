@@ -104,9 +104,11 @@ void setup() {
 // Run continuously
 void loop() {
 
-  for (int i = 1; i <= (delayBetweenMeasurementsInMinutes*2); i++) {
+  /*for (int i = 1; i <= (delayBetweenMeasurementsInMinutes*2); i++) {
   delay(delayMax);
-  }
+  }*/
+
+  delay(30000);
 
   // Read values
   readTime();
